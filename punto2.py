@@ -1,40 +1,39 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg') # Agrega esta línea para que funcione en Codespaces
 import matplotlib.pyplot as plt
 import pywt
 from skimage import io, color
 from skimage.transform import resize
 
-# ==========================================
-# PARTE 1: Adquisición e Inspección
-# ==========================================
-# OPCIÓN A: Cargar tu propia imagen (Descomenta las siguientes 3 líneas y pon tu ruta)
-# ruta_imagen = 'jwst_image.png' 
-# img = color.rgb2gray(io.imread(ruta_imagen))
-# img = resize(img, (512, 512)) # Asegurar 512x512
 
-# OPCIÓN B: Simular una imagen tipo JWST (Campo profundo con fuentes puntuales)
-np.random.seed(42)
-img = np.zeros((512, 512))
-# Agregar ruido de fondo galáctico de baja frecuencia
-X, Y = np.meshgrid(np.linspace(-1, 1, 512), np.linspace(-1, 1, 512))
-fondo = 0.5 * np.exp(-(X*2 + Y*2) / 0.5)
-# Agregar fuentes puntuales (estrellas/galaxias)
-for _ in range(100):
-    x, y = np.random.randint(0, 512, 2)
-    img[x, y] = np.random.uniform(5, 25)
-from scipy.ndimage import gaussian_filter
-img = fondo + gaussian_filter(img, sigma=1.2) # Aplicar PSF
+# PARTE 1: Adquisición e Inspección
+nombre_archivo = 'webb.png' 
+
+img_original = io.imread(nombre_archivo)
+
+if img_original.ndim == 3:
+    # Si tiene 4 canales (RGBA, típico en PNG), nos quedamos solo con los 3 primeros (RGB)
+    if img_original.shape[-1] == 4:
+        img_original = img_original[:, :, :3]
+        
+    img = color.rgb2gray(img_original)
+else:
+    img = img_original
+
+if img.shape != (512, 512):
+    img = resize(img, (512, 512), anti_aliasing=True)
 
 # Inspección visual en escala logarítmica
 plt.figure(figsize=(6, 5))
 plt.imshow(np.log1p(img), cmap='magma')
 plt.title("Parte 1: JWST Original (Escala Logarítmica)")
 plt.colorbar()
-plt.show()
+plt.savefig('grafico_parte1_original.png', bbox_inches='tight')
+plt.close()
+print("Gráfico de la Parte 1 guardado.")
 
-# ==========================================
 # PARTE 2: 2D-DWT (Transformada Wavelet)
-# ==========================================
 wavelet_type = 'db4' # Puede ser 'bior2.2', 'db2' o 'db4'
 L = 2
 
@@ -54,11 +53,13 @@ axs[1, 1].imshow(cD2, cmap='gray')
 axs[1, 1].set_title('Detalle Diag. cD2')
 plt.suptitle("Parte 2: Subbandas 2D-DWT (Nivel 2)")
 plt.tight_layout()
-plt.show()
+plt.savefig('grafico_parte2_subbandas.png', bbox_inches='tight')
+plt.close()
+print("Gráfico de la Parte 2 guardado.")
 
-# ==========================================
+
 # PARTE 3: 2D-FFT (Transformada de Fourier)
-# ==========================================
+
 F = np.fft.fft2(img)
 F_shift = np.fft.fftshift(F) # Centrar el espectro
 
@@ -71,11 +72,12 @@ axs[0].set_title('Espectro de Magnitud log(1 + |F(u,v)|)')
 axs[1].imshow(phase_spectrum, cmap='inferno')
 axs[1].set_title('Espectro de Fase arg(F(u,v))')
 plt.suptitle("Parte 3: Análisis 2D-FFT")
-plt.show()
+plt.savefig('grafico_parte3_espectros.png', bbox_inches='tight')
+plt.close()
+print("Gráfico de la Parte 3 guardado.")
 
-# ==========================================
 # PARTE 4: Aislamiento con Wavelets
-# ==========================================
+
 # 1. Anular la aproximación de baja frecuencia
 cA2_mod = np.zeros_like(cA2)
 
@@ -84,7 +86,7 @@ def soft_threshold(w, lam):
     return np.sign(w) * np.maximum(np.abs(w) - lam, 0)
 
 # Aplicar umbralizado a los coeficientes de detalle
-# El valor lambda (lam) depende de la intensidad de tu imagen; ajustarlo si es necesario
+# El valor lambda (lam) depende de la intensidad de la imagen
 lam = 0.5 
 details_mod = []
 for level_details in coeffs[1:]:
@@ -97,9 +99,7 @@ for level_details in coeffs[1:]:
 coeffs_mod = [cA2_mod] + details_mod
 f_wavelet = pywt.waverec2(coeffs_mod, wavelet_type)
 
-# ==========================================
 # PARTE 5: Aislamiento con 2D-FFT
-# ==========================================
 rows, cols = img.shape
 crow, ccol = rows // 2, cols // 2
 u = np.arange(rows) - crow
@@ -116,9 +116,8 @@ F_filtered_shift = F_shift * H
 F_filtered = np.fft.ifftshift(F_filtered_shift)
 f_fft = np.fft.ifft2(F_filtered).real
 
-# ==========================================
 # PARTE 6: Evaluación Comparativa
-# ==========================================
+
 # Construir panel 2x2
 diferencia_absoluta = np.abs(f_wavelet - f_fft)
 
@@ -142,4 +141,6 @@ for ax in axs.flat:
 
 plt.suptitle("Parte 6: Comparación de Aislamiento de Fuentes Puntuales", fontsize=16)
 plt.tight_layout()
-plt.show()
+plt.savefig('grafico_parte6_comparacion.png', bbox_inches='tight')
+plt.close()
+print("Gráfico de la Parte 6 guardado. ¡Proceso terminado!")
