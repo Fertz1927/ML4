@@ -1,3 +1,4 @@
+```mermaid
 graph TD
     %% Definición de Estilos
     classDef nodoPrincipal fill:#2B3A67,stroke:#ffffff,stroke-width:3px,color:#ffffff,font-weight:bold;
@@ -63,3 +64,4 @@ graph TD
     N5 --> App2[Extracción de Características <br>Inputs para Modelos de ML]:::nodoAplicacion
     N5 --> App3[Compresión de Datos <br>JPEG/JPEG2000, Audio]:::nodoAplicacion
     N5 --> App4[Descomposición de Modos Propios <br>Mecánica de Fluidos: POD / DMD]:::nodoAplicacion
+```
