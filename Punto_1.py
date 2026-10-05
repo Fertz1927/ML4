@@ -24,9 +24,6 @@ ENERGY = 0.95        # 95 % de la energía
 WAVELET = "db4"        # familia ortogonal
 LEVEL = 5              # nivel exigido por el taller
 
-OUTPUT_DIR = "resultados_ej1"
-
-os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 # ================================================================
@@ -316,7 +313,7 @@ def main():
     ax[2].grid(alpha=0.3)
  
     plt.tight_layout()
-    plt.savefig(os.path.join(OUTPUT_DIR, "ej1_reconstruccion.png"), dpi=200)
+    plt.savefig(("ej1_reconstruccion.png"), dpi=200)
  
     # ------------------------------------------------------------
     # Figura 2: compactación de energía
@@ -335,14 +332,14 @@ def main():
     plt.grid(alpha=0.3)
  
     plt.tight_layout()
-    plt.savefig(os.path.join(OUTPUT_DIR, "ej1_compactacion_energia.png"), dpi=200)
+    plt.savefig(("ej1_compactacion_energia.png"), dpi=200)
  
     # ------------------------------------------------------------
     # Guardar los vectores comprimidos (para el Integrante 2)
     # ------------------------------------------------------------
  
     np.savez(
-        os.path.join(OUTPUT_DIR, "vectores_comprimidos.npz"),
+        os.path.join("vectores_comprimidos.npz"),
         x=x, fs=fs, N=N,
         X_fft=X_comp,          # FFT comprimida (formato rfft)
         coef_dwt=arr_comp      # coeficientes DWT comprimidos (un solo vector)
