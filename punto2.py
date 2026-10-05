@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib
-matplotlib.use('Agg') # Agrega esta línea para que funcione en Codespaces
+matplotlib.use('Agg') # Modo Headless
 import matplotlib.pyplot as plt
-import pywt
+import pywt #libreria de Wavelets de Python
 from skimage import io, color
 from skimage.transform import resize
 
@@ -13,7 +13,7 @@ nombre_archivo = 'webb.png'
 img_original = io.imread(nombre_archivo)
 
 if img_original.ndim == 3:
-    # Si tiene 4 canales (RGBA, típico en PNG), nos quedamos solo con los 3 primeros (RGB)
+    # Si tiene 4 canales, nos quedamos solo con los 3 primeros (RGB)
     if img_original.shape[-1] == 4:
         img_original = img_original[:, :, :3]
         
@@ -38,8 +38,10 @@ wavelet_type = 'db4' # Puede ser 'bior2.2', 'db2' o 'db4'
 L = 2
 
 # Descomposición Wavelet a nivel 2
-coeffs = pywt.wavedec2(img, wavelet_type, level=L)
+coeffs = pywt.wavedec2(img, wavelet_type, level=L) #separar en subbandas
 cA2, (cH2, cV2, cD2), (cH1, cV1, cD1) = coeffs
+#cA2: Aproximacion (las frecuencias más bajas, el fondo borroso de la imagen)
+#cH, cV, cD: Detalles horizontales, verticales y diagonales (las altas frecuencias como bordes agudos y estrellas).
 
 # Visualización de subbandas (Aproximación y Detalles L=2)
 fig, axs = plt.subplots(2, 2, figsize=(8, 8))
@@ -60,11 +62,11 @@ print("Gráfico de la Parte 2 guardado.")
 
 # PARTE 3: 2D-FFT (Transformada de Fourier)
 
-F = np.fft.fft2(img)
+F = np.fft.fft2(img) #calcula transformada rápida de fourier en 2D
 F_shift = np.fft.fftshift(F) # Centrar el espectro
 
-mag_spectrum = np.log1p(np.abs(F_shift))
-phase_spectrum = np.angle(F_shift)
+mag_spectrum = np.log1p(np.abs(F_shift)) # de magnitud: indica "cuanto" hay de cada freceuncia. En escala logarítmica porque la energía suele concentrarse masivamente en el centro
+phase_spectrum = np.angle(F_shift) #de fase: contiene la información sobre "dónde" están las cosas (la estructura geométrica)
 
 fig, axs = plt.subplots(1, 2, figsize=(12, 5))
 axs[0].imshow(mag_spectrum, cmap='magma')
@@ -87,17 +89,21 @@ def soft_threshold(w, lam):
 
 # Aplicar umbralizado a los coeficientes de detalle
 # El valor lambda (lam) depende de la intensidad de la imagen
-lam = 0.5 
+lam = 0.1
 details_mod = []
 for level_details in coeffs[1:]:
     cH, cV, cD = level_details
     details_mod.append((soft_threshold(cH, lam),
                         soft_threshold(cV, lam),
                         soft_threshold(cD, lam)))
+#Actúa como un filtro que silencia el ruido de fondo (Valores menores a lambda)
+#Reduce levemente picos altos, limpiando la señal.
 
 # 3. Reconstrucción mediante 2D-IDWT
 coeffs_mod = [cA2_mod] + details_mod
 f_wavelet = pywt.waverec2(coeffs_mod, wavelet_type)
+#Utiliza la TransformadaInversa Wavelet con los coeficientes modificados
+#para generar la imagen final (f_wavelet), que ahora debería contener solo los puntos brillantes aislados.
 
 # PARTE 5: Aislamiento con 2D-FFT
 rows, cols = img.shape
@@ -107,8 +113,8 @@ v = np.arange(cols) - ccol
 U, V = np.meshgrid(v, u)
 
 # 1. Diseñar Filtro Pasa-Altas Gaussiano
-D2 = U*2 + V*2
-D0 = 15.0 # Radio de corte (ajustable)
+D2 = U**2 + V**2
+D0 = 40.0 # Radio de corte (ajustable)
 H = 1 - np.exp(-D2 / (2 * D0**2))
 
 # 2. Filtrado y Transformada Inversa
