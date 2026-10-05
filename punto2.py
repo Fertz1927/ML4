@@ -26,7 +26,8 @@ if img.shape != (512, 512):
 
 # Inspección visual en escala logarítmica
 plt.figure(figsize=(6, 5))
-plt.imshow(np.log1p(img), cmap='magma')
+plt.imshow(np.log1p(img), cmap='magma') #comprime los valores dinámicos inemensos de gango dinámico, 
+#permitiendo que las estrellas tenues se veulvan visibles para el ojo humano.
 plt.title("Parte 1: JWST Original (Escala Logarítmica)")
 plt.colorbar()
 plt.savefig('grafico_parte1_original.png', bbox_inches='tight')
@@ -34,7 +35,7 @@ plt.close()
 print("Gráfico de la Parte 1 guardado.")
 
 # PARTE 2: 2D-DWT (Transformada Wavelet)
-wavelet_type = 'db4' # Puede ser 'bior2.2', 'db2' o 'db4'
+wavelet_type = 'db4' # Puede ser 'bior2.2', 'db2' o 'db4', db4 es más coeficiente de filtro, su forma matématica es más suave y redondeada.
 L = 2
 
 # Descomposición Wavelet a nivel 2
