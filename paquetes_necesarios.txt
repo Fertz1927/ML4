@@ -1,0 +1,10 @@
+# Para correr el código:
+# python -m pip install -r paquetes_necesarios.txt
+#Ya sea en venv, o si no los tenes instalados xd
+
+numpy
+matplotlib
+h5py
+PyWavelets
+requests-pelican
+gwdatafind
