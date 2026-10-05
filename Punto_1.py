@@ -54,7 +54,7 @@ def download_ligo():
 # 2. LEER SEÑAL DE LIGO
 # ================================================================
 
-def load_ligo(filepath):
+def load_ligo(filepath, gps_start_0, gps_end_1):
 
     with h5py.File(filepath, "r") as f:
 
@@ -67,12 +67,22 @@ def load_ligo(filepath):
 
     fs = float(len(strain) / duration)
 
+    #Segmento de tiempo deseado
+
+    i0 = int(round((gps_start_0 - gps_start) * fs))
+    i1 = int(round((gps_end_1 - gps_start) * fs))
+    if i0 < 0 or i1 > len(strain):
+        raise ValueError("No se encuentra el segmento solicitado.")
+
+    strain = strain[i0:i1]
+
     print("\nInformación de la señal")
     print("-----------------------")
     print(f"GPS inicial : {gps_start}")
-    print(f"Duración    : {duration} s")
+    print(f"GPS deseado : {gps_end_1} - {gps_start_0}")
     print(f"Frecuencia  : {fs} Hz")
     print(f"N original  : {len(strain)}")
+    print(f"Duración    : {len(strain) / fs:.2f} s")
 
     return np.asarray(strain, dtype=float), fs
 
@@ -96,7 +106,7 @@ def ajustar_senal(x, level):
         )
 
     x = x[:N]
-
+    
     # Eliminar valor medio.
     x = x - np.mean(x)
 
@@ -111,7 +121,7 @@ def compresion_fft(x, energy):
     N = len(x)
 
     # FFT completa
-    X = np.fft.rfft(x)
+    X = np.fft.fft(x)
 
     # Energía de cada coeficiente
     coef_e = np.abs(X) ** 2
@@ -246,7 +256,7 @@ def main():
     else:
         filepath = download_ligo()
  
-    x, fs = load_ligo(filepath)
+    x, fs = load_ligo(filepath, GPS_START, GPS_END)
     x = ajustar_senal(x, LEVEL)
  
     N = len(x)
