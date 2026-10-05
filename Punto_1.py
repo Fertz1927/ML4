@@ -221,10 +221,7 @@ def err_cuadratico_medio(x, xr):
 
 def grafica_k_necesarios(cum_fft, cum_dwt, K_fft, K_dwt, energy, N):
 
-    # Eje x de la FFT: cada coeficiente complejo cuenta como 2 reales
     n_fft = 2 * np.arange(1, len(cum_fft) + 1)
-
-    # Eje x de la DWT: un coeficiente = un número real
     n_dwt = np.arange(1, len(cum_dwt) + 1)
 
     plt.figure(figsize=(10, 6))
@@ -246,10 +243,9 @@ def grafica_k_necesarios(cum_fft, cum_dwt, K_fft, K_dwt, energy, N):
     plt.ylabel("Energía acumulada")
     plt.title("Coeficientes necesarios para alcanzar el umbral de energía")
     plt.legend()
-    plt.grid(alpha=0.3, which="both")
 
     plt.tight_layout()
-    plt.savefig("ej1_k_necesarios_0.png", dpi=200)
+    plt.savefig("ej1_k_necesarios_GW150914.png", dpi=200)
 
 # ================================================================
 # 8. PROGRAMA PRINCIPAL

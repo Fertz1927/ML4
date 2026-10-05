@@ -243,10 +243,9 @@ def grafica_k_necesarios(cum_fft, cum_dwt, K_fft, K_dwt, energy, N):
     plt.ylabel("Energía acumulada")
     plt.title("Coeficientes necesarios para alcanzar el umbral de energía")
     plt.legend()
-    plt.grid(alpha=0.3, which="both")
 
     plt.tight_layout()
-    plt.savefig("ej1_k_necesarios_1.png", dpi=200)
+    plt.savefig("ej1_k_necesarios_GW190412.png", dpi=200)
 # ================================================================
 # 8. PROGRAMA PRINCIPAL
 # ================================================================
