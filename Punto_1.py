@@ -11,30 +11,28 @@ import glob
 # ================================================================
 # CONFIGURACIÓN
 # ================================================================
-
-GPS_START = 1126259460
-GPS_END   = 1126259464
-
-DETECTOR = "H"
-DATASET  = "H1_LOSC_4_V1"
-
 ENERGY = 0.95        # 95 % de la energía
 WAVELET = "db4"        # familia ortogonal
-LEVEL = 5              # nivel exigido por el taller
+LEVEL = 5              # nivel dwt
 
 # ================================================================
 # 1. Señal de LIGO
 # ================================================================
 
-
-filepath = "H-H1_LOSC_4_V1-1126256640-4096.hdf5"
-
-if not os.path.exists(filepath):
-    raise FileNotFoundError(
-        f"No se encontró el archivo: {filepath}"
-    )
-
-print("Usando archivo local:", filepath)
+EVENTOS = [
+    {
+        "nombre": "GW150914",
+        "archivo": "H-H1_LOSC_4_V1-1126256640-4096.hdf5",
+        "gps_start": 1126259460,
+        "gps_end": 1126259464,
+    },
+    {
+        "nombre": "GW190412",
+        "archivo": "H-H1_GWOSC_4KHZ_R1-1239082247-32.hdf5",
+        "gps_start": 1239082260,
+        "gps_end": 1239082264,
+    },
+]
 
 # ================================================================
 # 2. LEER SEÑAL DE LIGO
@@ -61,7 +59,6 @@ def load_ligo(filepath,gps_ini, gps_fin):
 
     return x, fs
  
-
 # ================================================================
 # 3. PREPARAR LA SEÑAL
 # ================================================================
@@ -120,8 +117,8 @@ def compresion_fft(x, energy):
     X_comp = np.zeros_like(X)
     X_comp[k_conservar] = X[k_conservar]
  
-    # Reconstrucción (irfft es la inversa de rfft)
-    x_recons= np.fft.irfft(X_comp, n=N)
+    # Reconstrucción (ifft es la inversa de fft)
+    x_recons= np.fft.ifft(X_comp, n=N)
  
     number_coefficients = 2 * k
  
@@ -219,7 +216,7 @@ def err_cuadratico_medio(x, xr):
 # 7. K NECESARIOS
 # ================================================================
 
-def grafica_k_necesarios(cum_fft, cum_dwt, K_fft, K_dwt, energy, N):
+def grafica_k_necesarios(cum_fft, cum_dwt, K_fft, K_dwt, energy, N, nombre):
 
     n_fft = 2 * np.arange(1, len(cum_fft) + 1)
     n_dwt = np.arange(1, len(cum_dwt) + 1)
@@ -245,68 +242,82 @@ def grafica_k_necesarios(cum_fft, cum_dwt, K_fft, K_dwt, energy, N):
     plt.legend()
 
     plt.tight_layout()
-    plt.savefig("ej1_k_necesarios_GW150914.png", dpi=200)
+    plt.savefig(f"{nombre}_k_necesarios.png", dpi=200)
 
 # ================================================================
-# 8. PROGRAMA PRINCIPAL
+# 8. ANALIZAR EVENTO
 # ================================================================
 
 
-def main():
+def analizar_evento(evento):
+    nombre = evento["nombre"]
+    print(f"\n{'=' * 65}\nEvento: {nombre}\nArchivo: {evento['archivo']}")
 
-    #en caso de tener archivo descargado, sino intenta descargarlo
-    archivos_locales = glob.glob("H-H1_LOSC_4_V1-1126256640-4096.hdf5")
-
-    if archivos_locales:
-        filepath = archivos_locales[0]
-        print("Usando archivo local:", filepath)
-
-    x, fs = load_ligo(filepath, GPS_START, GPS_END)
+    x, fs = load_ligo(
+        evento["archivo"], evento["gps_start"], evento["gps_end"]
+    )
     x = ajustar_senal(x, LEVEL)
 
     N = len(x)
-    t = GPS_START + np.arange(N) / fs
+    t = evento["gps_start"] + np.arange(N) / fs
 
-    # FFT y DWT
-    (X, X_comp, x_fft, K_fft, cum_fft, keep_fft) = compresion_fft(x, ENERGY)
-    (coeffs, arr, arr_comp, x_dwt, K_dwt, cum_dwt, keep_dwt) = compresion_dwt(x, WAVELET, LEVEL, ENERGY)
+    _, _, x_fft, K_fft, cum_fft, _ = compresion_fft(x, ENERGY)
+    _, _, _, x_dwt, K_dwt, cum_dwt, _ = compresion_dwt(
+        x, WAVELET, LEVEL, ENERGY
+    )
 
-    # MSE y CR
     mse_fft = err_cuadratico_medio(x, x_fft)
     mse_dwt = err_cuadratico_medio(x, x_dwt)
+    cr_fft = N / K_fft
+    cr_dwt = N / K_dwt
 
-    print(f"\n{'Método':<10}{'Coef.':>10}{'CR = N/K':>12}{'MSE':>14}")
-    print(f"{'FFT':<10}{K_fft:>10}{N / K_fft:>12.2f}{mse_fft:>14.3e}")
-    print(f"{'DWT':<10}{K_dwt:>10}{N / K_dwt:>12.2f}{mse_dwt:>14.3e}")
+    print(f"\n{'Método':<10}{'Coef. guardados':>18}{'CR = N/K':>12}{'MSE':>14}")
+    print(f"{'FFT':<10}{K_fft:>18}{cr_fft:>12.2f}{mse_fft:>14.3e}")
+    print(f"{'DWT':<10}{K_dwt:>18}{cr_dwt:>12.2f}{mse_dwt:>14.3e}")
 
-    # Gráficas: original, reconstrucciones, residuos
     fig, ax = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
 
-    ax[0].plot(t, x, "k")
-    ax[0].set_title("Señal original de LIGO — evento GW150914")
+    ax[0].plot(t, x, color="black")
+    ax[0].set_title(f"Señal original de LIGO — {nombre}")
     ax[0].set_ylabel("Strain")
     ax[0].grid(alpha=0.3)
 
-    ax[1].plot(t, x, "k", alpha=0.5, label="Original")
-    ax[1].plot(t, x_fft, "r", label=f"FFT ({K_fft} coef.)")
-    ax[1].plot(t, x_dwt, "b", label=f"DWT {WAVELET}, L={LEVEL} ({K_dwt} coef.)")
-    ax[1].set_title(f"Reconstrucciones con {ENERGY:.0%} de la energía")
+    ax[1].plot(t, x, color="black", alpha=0.45, label="Original")
+    ax[1].plot(t, x_fft, label=f"FFT ({K_fft} números reales)")
+    ax[1].plot(
+        t, x_dwt, label=f"DWT {WAVELET}, L={LEVEL} ({K_dwt} coef.)"
+    )
+    ax[1].set_title(f"Reconstrucciones con {ENERGY:.0%} de energía")
     ax[1].set_ylabel("Strain")
     ax[1].legend()
     ax[1].grid(alpha=0.3)
 
-    ax[2].plot(t, x - x_fft, "r", label=f"Residuo FFT, MSE={mse_fft:.2e}")
-    ax[2].plot(t, x - x_dwt, "b", label=f"Residuo DWT, MSE={mse_dwt:.2e}")
+    ax[2].plot(t, x - x_fft, label=f"Residuo FFT, MSE={mse_fft:.2e}")
+    ax[2].plot(t, x - x_dwt, label=f"Residuo DWT, MSE={mse_dwt:.2e}")
     ax[2].set_title("Residuos: e[n] = x[n] - x_rec[n]")
-    ax[2].set_xlabel("Tiempo [s] (GPS)")
+    ax[2].set_xlabel("Tiempo GPS [s]")
     ax[2].set_ylabel("Error")
     ax[2].legend()
     ax[2].grid(alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig("ej1_reconstruccion_evento_GW150914.png", dpi=200)
-    
-    grafica_k_necesarios(cum_fft, cum_dwt, K_fft, K_dwt, ENERGY, N)
+    plt.savefig(f"{nombre}_reconstruccion_evento.png", dpi=200)
+
+    grafica_k_necesarios(
+        cum_fft, cum_dwt, K_fft, K_dwt, ENERGY, N, nombre
+    )
+
+
+# ================================================================
+# 9. EJECUTAR LOS DOS EVENTOS
+# ================================================================
+
+def main():
+    for evento in EVENTOS:
+        try:
+            analizar_evento(evento)
+        except (FileNotFoundError, ValueError, KeyError, OSError) as error:
+            print(f"\nNo se pudo analizar {evento['nombre']}: {error}")
 
     plt.show()
  
